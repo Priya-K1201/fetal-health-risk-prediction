@@ -182,7 +182,7 @@ The program performs preprocessing, trains the models, evaluates performance, di
 
 ## 👩‍💻 Team Members
 
-* **Priya Dharshini K** – Data Preprocessing, Machine Learning Model Development, Data Analysis, Documentation
+* **Priyadharshini K** – Data Preprocessing, Machine Learning Model Development, Data Analysis, Documentation
 * **Teammate 2** – Data Visualization, Tableau Dashboard Development, Testing
 
 ---
