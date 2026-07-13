@@ -1,0 +1,166 @@
+# ==========================================
+# FETAL HEALTH DATA SCIENCE PROJECT
+# (Course-Based Implementation)
+# ==========================================
+
+# -------- 1. LIBRARIES (NUMPY, PANDAS) --------
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# -------- ML Libraries --------
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
+from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.cluster import KMeans
+
+# -------- 2. LOAD DATA --------
+df = pd.read_csv("fetal_health.csv")
+
+print("Dataset Shape:", df.shape)
+
+# -------- 3. OUTLIER DETECTION and REMOVAL--------
+Q1 = df.quantile(0.25)
+Q3 = df.quantile(0.75)
+IQR = Q3 - Q1
+
+outliers = ((df < (Q1 - 1.5*IQR)) | (df > (Q3 + 1.5*IQR))).sum().sum()
+print("Total Outliers:", outliers)
+
+
+# -------- 4. CORRELATION --------
+corr = df.corr()
+
+plt.figure(figsize=(6,5))
+plt.imshow(corr)
+plt.colorbar()
+plt.title("Correlation Matrix")
+plt.show()
+
+# -------- 5. CLASS DISTRIBUTION (MATPLOTLIB) --------
+df['fetal_health'].value_counts().plot(kind='bar')
+plt.title("Fetal Health Classes")
+plt.xlabel("1=Normal, 2=Suspect, 3=Pathological")
+plt.show()
+
+# -------- 6. DATA PREPARATION --------
+X = df.drop('fetal_health', axis=1)
+y = df['fetal_health']
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y
+)
+
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# -------- 7. MODELS --------
+
+# Logistic Regression
+lr = LogisticRegression(max_iter=1000, class_weight='balanced')
+lr.fit(X_train, y_train)
+y_pred_lr = lr.predict(X_test)
+
+# k-NN
+knn = KNeighborsClassifier(n_neighbors=5)
+knn.fit(X_train, y_train)
+y_pred_knn = knn.predict(X_test)
+
+# -------- 8. EVALUATION --------
+def evaluate(name, y_true, y_pred):
+    acc = accuracy_score(y_true, y_pred)
+    prec = precision_score(y_true, y_pred, average='weighted')
+    rec = recall_score(y_true, y_pred, average='weighted')
+    f1 = f1_score(y_true, y_pred, average='weighted')
+
+    print(f"\n{name}")
+    print("----------------------")
+    print(f"Accuracy : {acc:.2f}")
+    print(f"Precision: {prec:.2f}")
+    print(f"Recall   : {rec:.2f}")
+    print(f"F1 Score : {f1:.2f}")
+
+    return f1
+
+print("\nMODEL PERFORMANCE")
+print("----------------------------")
+
+lr_f1 = evaluate("Logistic Regression", y_test, y_pred_lr)
+knn_f1 = evaluate("k-NN", y_test, y_pred_knn)
+
+# -------- 9. BEST MODEL --------
+if lr_f1 > knn_f1:
+    best_model = "Logistic Regression"
+    best_pred = y_pred_lr
+else:
+    best_model = "k-NN"
+    best_pred = y_pred_knn
+
+print("\nBest Model:", best_model)
+
+# -------- 10. CONFUSION MATRIX --------
+cm = confusion_matrix(y_test, best_pred)
+
+print("\nConfusion Matrix:")
+print(cm)
+
+# -------- 11. TP, FP, FN, TN --------
+print("\nTP, FP, FN, TN")
+
+labels = [1, 2, 3]
+names = {1: "Normal", 2: "Suspect", 3: "Pathological"}
+
+for i, label in enumerate(labels):
+    TP = cm[i, i]
+    FP = cm[:, i].sum() - TP
+    FN = cm[i, :].sum() - TP
+    TN = cm.sum() - (TP + FP + FN)
+
+    print(f"\n{names[label]}")
+    print(f"TP={TP}, FP={FP}, FN={FN}, TN={TN}")
+
+# -------- 12. CLUSTERING --------
+X_scaled_full = StandardScaler().fit_transform(X)
+
+kmeans = KMeans(n_clusters=3, random_state=42)
+clusters = kmeans.fit_predict(X_scaled_full)
+
+plt.figure(figsize=(6,4))
+plt.scatter(df['baseline value'], df['accelerations'], c=clusters)
+plt.title("Clustering Visualization")
+plt.xlabel("Baseline Value")
+plt.ylabel("Accelerations")
+plt.show()
+
+# -------- 13. SAMPLE PREDICTIONS --------
+label_map = {1: "Normal", 2: "Suspect", 3: "Pathological"}
+
+print("\nSample Predictions:")
+for i in range(5):
+    actual = label_map[int(y_test.iloc[i])]
+    pred = label_map[int(best_pred[i])]
+    print(f"Actual: {actual} | Predicted: {pred}")
+
+# -------- 14. SAMPLE FEATURE GRAPH --------
+sample = X.iloc[0]
+
+plt.figure(figsize=(10,4))
+plt.plot(sample.values)
+plt.title("Sample Feature Pattern")
+plt.xlabel("Feature Index")
+plt.ylabel("Value")
+plt.show()
+
+# -------- 15. NEW SAMPLE PREDICTION --------
+sample_input = X.iloc[[0]]
+sample_scaled = scaler.transform(sample_input)
+
+if best_model == "Logistic Regression":
+    result = lr.predict(sample_scaled)
+else:
+    result = knn.predict(sample_scaled)
+
+print("\nNew Sample Prediction:", label_map[int(result[0])])

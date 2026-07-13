@@ -1,0 +1,12 @@
+Dataset: Fetal Health Classification Dataset
+
+Source:
+https://www.kaggle.com/datasets/andrewmvd/fetal-health-classification
+
+Target Classes
+
+1 - Normal
+
+2 - Suspect
+
+3 - Pathological
